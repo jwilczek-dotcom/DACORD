@@ -1,0 +1,12 @@
+<!DOCTYPE FilterScript>
+<FilterScript>
+ <filter name="Ambient Occlusion">
+  <Param enum_cardinality="2" value="0" enum_val0="per-Vertex" tooltip="Occlusion may be calculated per-vertex or per-face, color and quality will be saved in the chosen component." enum_val1="per-Face (deprecated)" type="RichEnum" description="Occlusion mode:" name="occMode"/>
+  <Param value="0" tooltip="The balance between a uniform and a directionally biased set of lighting direction&lt;br>: - 0 means light came only uniformly from any direction&lt;br> - 1 means that all the light cames from the specified cone of directions &lt;br> - other values mix the two set of lighting directions " type="RichFloat" description="Directional Bias [0..1]" name="dirBias"/>
+  <Param value="1024" tooltip="Number of different views uniformly placed around the mesh. More views means better accuracy at the cost of increased calculation time" type="RichInt" description="Requested views" name="reqViews"/>
+  <Param x="0" z="0" tooltip="Number of different views placed around the mesh. More views means better accuracy at the cost of increased calculation time" y="1" type="RichPoint3f" description="Lighting Direction" name="coneDir"/>
+  <Param value="900" tooltip="Number of different views uniformly placed around the mesh. More views means better accuracy at the cost of increased calculation time" type="RichFloat" description="Cone amplitude" name="coneAngle"/>
+  <Param value="true" tooltip="Only works for per-vertex AO. In order to use GPU-Mode, your hardware must support FBOs, FP32 Textures and Shaders. Normally increases the performance by a factor of 4x-5x" type="RichBool" description="Use GPU acceleration" name="useGPU"/>
+  <Param value="1024" tooltip="Defines the depth texture size used to compute occlusion from each point of view. Higher values means better accuracy usually with low impact on performance" type="RichInt" description="Depth texture size(should be 2^n)" name="depthTexSize"/>
+ </filter>
+</FilterScript>

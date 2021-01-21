@@ -1,0 +1,10 @@
+<!DOCTYPE FilterScript>
+<FilterScript>
+ <filter name="Invert Faces Orientation">
+  <Param type="RichBool" description="Force Flip" value="true" tooltip="If selected, the normals will always be flipped; otherwise, the filter tries to set them outside" name="forceFlip"/>
+  <Param type="RichBool" description="Flip only selected faces" value="false" tooltip="If selected, only selected faces will be affected" name="onlySelected"/>
+ </filter>
+ <filter name="Re-Compute Vertex Normals">
+  <Param type="RichEnum" description="Weighting Mode:" enum_val0="None (avg)" enum_val2="By Area" enum_val3="As defined by N. Max" enum_val1="By Angle" value="1" tooltip="" name="weightMode" enum_cardinality="4"/>
+ </filter>
+</FilterScript>
