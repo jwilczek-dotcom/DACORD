@@ -1205,7 +1205,7 @@ AOS_normals.all <- function(mesh=mesh, par=par, plots=F, infos=F) {
   axe <- c(0,0,1)
   axe <- rotate3d(axe,phi,1,0,0)
   axe <- rotate3d(axe,theta,0,1,0)
-  n0 <- axe
+  n0 <- as.vector(axe)
   ni <- t(mesh$normals[-4,])
   Ai <- matrix(NA,nrow(ni),3)
   for (i in 1:nrow(ni)) {
