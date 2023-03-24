@@ -1993,7 +1993,7 @@ AOS_profile.all <- function(mesh, par, nb=6, by.deg=1, ref="longest", plots=F, i
   di = numeric(dim(SOURCE)[1])
   for (p in 1:dim(SOURCE)[1]) {
     SOURCE.M <- matrix(SOURCE[p,],dim(TARGET)[1],2,byrow=T)         
-    di[p] <- min(sqrt(apply((SOURCE.M-TARGET)^2,1,sum)))
+    di[p] <- min(sqrt(rowSums((SOURCE.M-TARGET)^2)))
   }
   F1 = sum(di^2)
   if (infos==T) { print(paste("phi:", round(phi,4), "; theta:", round(theta,4),
