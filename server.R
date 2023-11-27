@@ -4,7 +4,7 @@
 # Last update: 2019/09/27
 
 # SET PATH TO DACORD FOLDER:
-WD <- c("D:/OneDrive/DACORD")
+WD <- c("C:/DACORD")
 
 #..............................................................................................
 # To increase the calculation time, some calculations are performed externally via MeshLab:
@@ -41,7 +41,7 @@ library(sp)
 library(parallel)
 library(foreach)
 library(iterators); library(doParallel)
-library(fit.models); library(MASS); library(robustbase) ;library(rrcov); library(robust)
+library(fit.models); library(MASS); library(robustbase); library(rrcov); library(robust)
 library(pracma)
 library(alphahull)
 library(igraph)
@@ -101,6 +101,7 @@ shinyServer(function(input, output, session) {
     # filen <<- "D:/OneDrive/DACORD/examples/A011.ply"
     ### END DEBUG ###
     mesh <- vcgImport(filen, clean=F, readcolor=T)
+    mesh <- vcgUpdateNormals(mesh)
     if (is.null(mesh$material$color)) { mesh$material$color <- matrix(grey.colors(3)[2],3,dim(mesh$it)[2]) }
     mesh <<- mesh
     mesh.decim <<- decim(mesh,10000)
@@ -424,7 +425,8 @@ shinyServer(function(input, output, session) {
       SmIter <- input$sldSmIter_PM
       Perc <- input$sldPerc_PM
       Plo <- input$cbxPlots_PM
-      setProgress(0.1, "Please define three points on the model lying in the same horizontal plane.")
+      setProgress(0.1, "Please turn the model in the way you can easily identify three points on the model lying in the same horizontal plane.
+                  Validate this view by right click and then define these three points by three right clicks.")
       mesh <- mesh.preorient <- AOS_manual(mesh)
       setProgress(0.3, "Rotational axis found")
       mesh <- decim(mesh, Decim)

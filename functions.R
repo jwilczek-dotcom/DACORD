@@ -252,6 +252,56 @@ mesh.align2xy <- function(mesh, plots=F) {
   
 }
 
+mesh.align2centroid <- function(mesh, plots=F) {
+  # Align the centroid of the mesh with the origin of the coordinate system (0,0,0)
+  # Last Update: 2016/10/28
+  # Dependencies: par3d {rgl}, plot3d {rgl}, updateNormals {Morpho}
+  
+  # Arguments:
+  #   mesh:       triangular mesh ('mesh3d')
+  #   plots:      visualisation of the process/results ('logical')
+  # Value:
+  #   result:     aligned mesh ('mesh3d')
+  
+  # examples:
+  #   mesh.align2centroid(mesh, plots=T)
+  
+  if (plots==T) { par3d(windowRect=c(960,30,1920,1040)); plot3d(mesh, asp="iso", color="grey") }
+  xyz <- t(mesh$vb[1:3,])
+  x.m <- (min(xyz[,1]) + max(xyz[,1]))/2
+  y.m <- (min(xyz[,2]) + max(xyz[,2]))/2
+  z.m <- (min(xyz[,3]) + max(xyz[,3]))/2
+  xyz.m <- matrix(c(x.m,y.m,z.m),dim(xyz)[1],dim(xyz)[2], byrow=T)
+  xyz.cen <- xyz-xyz.m
+  mesh$vb[1:3,] <- t(xyz.cen)
+  mesh <- updateNormals(mesh)
+  if (plots==T) { plot3d(mesh, meshColor="legacy", add=T); points3d(0,0,0,size=10, col="red") }
+  return(mesh)
+  
+}
+
+# mesh.align2centroid <- function (mesh, plots=F) {
+#   # centre of mesh to the origin of coordinate system (0,0,0)
+#   
+#   #g.mesh$vb[1,] <- g.mesh$vb[1,]-mean(g.mesh$vb[1,])
+#   #g.mesh$vb[2,] <- g.mesh$vb[2,]-mean(g.mesh$vb[2,])
+#   #g.mesh$vb[3,] <- g.mesh$vb[3,]-mean(g.mesh$vb[3,])
+#   
+#   xyz <- t(mesh$vb[1:3,])
+#   x.m <- (min(xyz[,1]) + max(xyz[,1]))/2
+#   y.m <- (min(xyz[,2]) + max(xyz[,2]))/2
+#   z.m <- (min(xyz[,3]) + max(xyz[,3]))/2
+#   xyz.m <- matrix(c(x.m,y.m,z.m),dim(xyz)[1],dim(xyz)[2], byrow=T)
+#   xyz.cen <- xyz-xyz.m
+#   if (plots==T){
+#     plot3d(mesh, asp="iso")
+#     points3d(xyz.cen)
+#     points3d(0,0,0,size=10, col="red")
+#   }
+#   mesh$vb[1:3,] <- t(xyz.cen)
+#   return(mesh)
+# }
+
 rechant <- function (M, pts=1000) {
   # Re-sampling points of the 2D outline
   # Last update: 2016/10/18
@@ -1098,13 +1148,16 @@ digit.fixed.lite <- function (spec, fixed, ptsize = 1, center = FALSE) {
 
 AOS_manual <- function(mesh, plots=F, plots.fin=F) {
   # Manual pre-orientation of the model
-  # Last Update: 2019/09/27
+  # Last Update: 2023/11/27
   # Dependencies: plot3d {rgl}; lines3d {rgl}; points3d {rgl}; rotate3d {rgl}; translate3d {rgl};
   #               CircleFitByKasa {conicfit}; rotV {cwhmisc}
   
-  # Notes:  There was problem with 'Digit.Fixed.New' function. To solve this issue,
-  #         the original Digit.Fixed function from 'geomorph' package was used
-  #         However this creates problems because clicked point is sometimes identified on another surface
+  # Notes:  There were lots of problems with 'Digit.Fixed.New' and 'Digit.Fixed' from 'geomorph' package
+  #         Finally, the alignment is made in the following way:
+  #         1) orient the shred in the way you can easily identify three points lying in the plane
+  #         2) validate this view by right click
+  #         3) the 'glVisible' function is used to select only vertices which are visible (this should theoretically avoid problems with 'Digit.Fixed' when points are clicked on the opposite (invisible) side of the mes)
+  #         4) click three points lying in the same horizontal plane
 
   # Arguments:
   #   mesh:       triangular mesh ('mesh3d')
@@ -1116,6 +1169,87 @@ AOS_manual <- function(mesh, plots=F, plots.fin=F) {
   # examples:
   #   AOS_manual(mesh=mesh, plots=T, plots.fin=F)
 
+  par3d(windowRect=c(960,30,1920,1040)); plot3d(mesh, meshColor="legacy", asp="iso")
+  xyz <- t(mesh$vb[1:3,])
+  identify3d(xyz, n=1)
+  visi <- glVisible(mesh)
+  xyz <- xyz[visi,]
+  par3d(windowRect=c(960,30,1920,1040)); plot3d(mesh, meshColor="legacy", asp="iso"); points3d(xyz, col="lightgrey")
+  id <- identify3d(xyz, n=3)
+  rgl.close()
+  pts <- xyz[id,]
+  
+  # pts <- Digit.Fixed.New(mesh,mesh,3,center=FALSE)$A            # problems with Digit.Fixed.New
+  # pts <- digit.fixed.lite(mesh,fixed = 3,ptsize = 2,center=F)                      # newly added
+  if (plots==T) { par3d(windowRect=c(960,30,1920,1040)); plot3d(mesh, meshColor="legacy", asp="iso"); points3d(rbind(pts), col="red", size=20) }
+  plane <- plane3p(A=pts[1,],B=pts[2,],C=pts[3,])
+  plane.norm <- plane[1:3]/sqrt(sum(plane[1:3]^2))
+  mesh.M.rot <- rotV(plane.norm, c(0,0,1))
+  mesh.rot <- rotate3d(mesh,matrix=mesh.M.rot)
+  pts.rot <- rotate3d(pts,matrix=mesh.M.rot)
+  if (plots==T) { par3d(windowRect=c(960,30,1920,1040)); plot3d(mesh.rot, meshColor="legacy"); points3d(pts.rot, col="red", size=20) }
+  circle <- CircleFitByKasa(pts.rot[,1:2])
+  cx <- circle[1]; cy <- circle[2]; r <- circle[3]
+  mesh.preal <- translate3d(mesh.rot,-cx,-cy,0)
+  pts.preal <- translate3d(pts.rot,-cx,-cy,0)
+  if (plots==T) {
+    plot3d(mesh.preal, meshColor="legacy"); par3d(windowRect=c(960,30,1920,1040)) 
+    points3d(pts.preal, col="red", size=10)
+    lines3d(rbind(c(0,0,min(mesh.preal$vb[3,])),c(0,0,max(mesh.preal$vb[3,]))), lwd=2, col="red")
+    rr <- max(sqrt(mesh.preal$vb[1,]^2+mesh.preal$vb[2,]^2))
+    plot(mesh.preal$vb[1,],mesh.preal$vb[2,], col="lightgrey", asp=1, xlim=c(-rr,rr), ylim=c(-rr,rr),
+         main="xy projection", xlab="x", ylab="y")
+    points(pts.preal[,1],pts.preal[,2], col="red", pch=19)  
+    points(0,0, col="red", pch=19)
+    draw.circle2d(0,0, r=r, col.border="red")
+  }
+  mid.pt <- apply(pts.preal[c(1,3),],2,mean); mid.pt[3] <- 0
+  if (plots==T) {
+    points3d(mid.pt[1],mid.pt[2],mid.pt[3], col="blue",size=10)
+    points(mid.pt[1],mid.pt[2], col="blue", pch=19)
+  }
+  mid.pt.rot <- rotV(mid.pt,c(1,0,0))
+  mesh.preal <- rotate3d(mesh.preal, matrix=mid.pt.rot)
+  if (plots==T) {
+    plot3d(mesh.preal, meshColor="legacy"); par3d(windowRect=c(960,30,1920,1040)) 
+    lines3d(rbind(c(0,0,min(mesh.preal$vb[3,])),c(0,0,max(mesh.preal$vb[3,]))), lwd=2, col="red")
+    
+    rr <- max(sqrt(mesh.preal$vb[1,]^2+mesh.preal$vb[2,]^2))
+    plot(mesh.preal$vb[1,],mesh.preal$vb[2,], col="lightgrey", asp=1, xlim=c(-rr,rr), ylim=c(-rr,rr),
+         main="xy projection", xlab="x", ylab="y")
+    points(pts.preal[,1],pts.preal[,2], col="red", pch=19)
+    points(0,0, col="red", pch=19)
+    draw.circle2d(0,0, r=r, col.border="red")
+  }
+  if (plots.fin==T) {
+    plot3d(mesh.preal, meshColor="legacy"); par3d(windowRect=c(960,30,1920,1040)) 
+    lines3d(rbind(c(0,0,min(mesh.preal$vb[3,])),c(0,0,max(mesh.preal$vb[3,]))), lwd=2, col="red")
+  }
+  mesh <- mesh.preal
+  return(mesh)
+}
+
+
+AOS_manual_old <- function(mesh, plots=F, plots.fin=F) {
+  # Manual pre-orientation of the model
+  # Last Update: 2019/09/27
+  # Dependencies: plot3d {rgl}; lines3d {rgl}; points3d {rgl}; rotate3d {rgl}; translate3d {rgl};
+  #               CircleFitByKasa {conicfit}; rotV {cwhmisc}
+  
+  # Notes:  There was problem with 'Digit.Fixed.New' function. To solve this issue,
+  #         the original Digit.Fixed function from 'geomorph' package was used
+  #         However this creates problems because clicked point is sometimes identified on another surface
+  
+  # Arguments:
+  #   mesh:       triangular mesh ('mesh3d')
+  #   plots:      visualisation of the process ('logical')
+  #   plots.fin:  visualisation of the result ('logical')
+  # Value:
+  #   mesh:       pre-oriented triangular mesh ('mesh3d')
+  
+  # examples:
+  #   AOS_manual(mesh=mesh, plots=T, plots.fin=F)
+  
   par3d(windowRect=c(960,30,1920,1040)); plot3d(mesh, meshColor="legacy", asp="iso")
   # pts <- Digit.Fixed.New(mesh,mesh,3,center=FALSE)$A            # problems with Digit.Fixed.New
   pts <- digit.fixed.lite(mesh,fixed = 3,ptsize = 2,center=F)                      # newly added
@@ -1166,8 +1300,6 @@ AOS_manual <- function(mesh, plots=F, plots.fin=F) {
   mesh <- mesh.preal
   return(mesh)
 }
-
-
 
 
 
